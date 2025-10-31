@@ -1,0 +1,172 @@
+----------------------------------- CONSULTAS CON INNER -----------------------------------
+
+--------- 1 Listado de tarifas por hotel y tipo de habitación ---------------
+
+SELECT
+    h.nombre as hotel,
+    th.descripcion as tipo_habitacion,
+    t.fecha_desde,
+    t.fecha_hasta,
+    t.precio
+FROM tarifarios t
+INNER JOIN hoteles h ON t.id_hotel = h.id_hotel
+INNER JOIN tipo_habitaciones th ON t.id_tipo_habitacion = th.id_tipo_habitacion
+ORDER BY h.nombre, th.descripcion, t.fecha_desde;
+
+----------------------- 2 Presupuestos generados por cada turista --------------------------------
+
+SELECT
+    tur.nombre,
+    tur.apellido,
+    COUNT(pr.id_presupuesto_reserva) as total_presupuestos,
+    SUM(pr.cantidad_noches * tar.precio) as monto_total_presupuestado
+FROM turistas tur
+INNER JOIN reservas r ON tur.id_turista = r.id_turista
+INNER JOIN presupuesto_reservas pr ON r.id_presupuesto_reserva = pr.id_presupuesto_reserva
+INNER JOIN tarifarios tar ON pr.id_tarifario = tar.id_tarifario
+GROUP BY tur.id_turista, tur.nombre, tur.apellido;
+
+--------------------- 3 Reservas con nombre del turista, hotel y monto --------------------------
+
+SELECT 
+    r.codigo_reserva,
+    CONCAT(tur.nombre, ' ', tur.apellido) as turista,
+    h.nombre as hotel,
+    th.descripcion as tipo_habitacion,
+    pr.fecha_reserva_desde,
+    pr.fecha_reserva_hasta,
+    pr.cantidad_noches,
+    r.monto_pagar
+FROM reservas r
+INNER JOIN turistas tur ON r.id_turista = tur.id_turista
+INNER JOIN presupuesto_reservas pr ON r.id_presupuesto_reserva = pr.id_presupuesto_reserva
+INNER JOIN tarifarios tar ON pr.id_tarifario = tar.id_tarifario
+INNER JOIN hoteles h ON tar.id_hotel = h.id_hotel
+INNER JOIN tipo_habitaciones th ON tar.id_tipo_habitacion = th.id_tipo_habitacion;
+
+------------------------- 4 Turistas con más de una reserva y su monto total acumulado -------------------
+
+SELECT 
+    tur.nombre,
+    tur.apellido,
+    COUNT(r.id_reserva) as total_reservas,
+    SUM(r.monto_pagar) as monto_total_acumulado
+FROM turistas tur
+INNER JOIN reservas r ON tur.id_turista = r.id_turista
+GROUP BY tur.id_turista, tur.nombre, tur.apellido
+HAVING COUNT(r.id_reserva) > 1;
+
+**********************************************
+**********************************************
+
+CONSULTAS CON SUBCONSULTAS
+
+-------------------------- 1 Turistas que han reservado en el hotel más caro ------------------------------
+
+SELECT DISTINCT
+    CONCAT(tur.nombre, ' ', tur.apellido) as turista,
+    h.nombre as hotel,
+    MAX(tar.precio) as precio_maximo_pagado
+FROM turistas tur
+INNER JOIN reservas r ON tur.id_turista = r.id_turista
+INNER JOIN presupuesto_reservas pr ON r.id_presupuesto_reserva = pr.id_presupuesto_reserva
+INNER JOIN tarifarios tar ON pr.id_tarifario = tar.id_tarifario
+INNER JOIN hoteles h ON tar.id_hotel = h.id_hotel
+WHERE tar.precio = (SELECT MAX(precio) FROM tarifarios)
+GROUP BY tur.id_turista, tur.nombre, tur.apellido, h.nombre;
+
+------------------------ 2 Habitaciones disponibles en un rango de fechas (la fecha la colocan ustedes, yo después colocaré una fecha random a ver si funciona la consulta) 
+
+-- Para el rango: 2025-12-20 al 2025-12-27
+SELECT
+    h.nombre as hotel,
+    th.descripcion as tipo_habitacion,
+    tar.precio as precio_noche
+FROM tarifarios tar
+INNER JOIN hoteles h ON tar.id_hotel = h.id_hotel
+INNER JOIN tipo_habitaciones th ON tar.id_tipo_habitacion = th.id_tipo_habitacion
+WHERE '2025-12-20' BETWEEN tar.fecha_desde AND tar.fecha_hasta
+  AND '2025-12-27' BETWEEN tar.fecha_desde AND tar.fecha_hasta
+  AND tar.id_tarifario NOT IN (
+    SELECT pr.id_tarifario
+    FROM presupuesto_reservas pr
+    WHERE (pr.fecha_reserva_desde BETWEEN '2025-12-20' AND '2025-12-27'
+       OR pr.fecha_reserva_hasta BETWEEN '2025-12-20' AND '2025-12-27')
+);
+
+----------------------- 3 Hoteles que ofrecen habitaciones para más de 2 personas ------------------------------
+
+SELECT DISTINCT
+    h.nombre as hotel,
+    th.descripcion as tipo_habitacion,
+    MIN(tar.precio) as precio_minimo
+FROM hoteles h
+INNER JOIN tarifarios tar ON h.id_hotel = tar.id_hotel
+INNER JOIN tipo_habitaciones th ON tar.id_tipo_habitacion = th.id_tipo_habitacion
+WHERE th.id_tipo_habitacion IN (
+    SELECT id_tipo_habitacion 
+    FROM tipo_habitaciones 
+    WHERE descripcion LIKE '%3 personas%' OR descripcion LIKE '%4 personas%'
+)
+GROUP BY h.nombre, th.descripcion
+ORDER BY h.nombre, precio_minimo;
+
+
+******************************************************************************
+******************************************************************************
+
+----------------- Consulta final: Presupuesto + Reserva para Hotel Agua Dorada ------------------
+-------------------1. Mostrar el presupuesto de los 4 hoteles-------------------------
+-- Presupuesto para todos los hoteles en las fechas especificadas
+
+SELECT
+    h.nombre as hotel,
+    th.descripcion as tipo_habitacion,
+    tar.precio as precio_noche,
+    DATEDIFF('2025-12-29', '2025-12-24') as noches,
+    (tar.precio * DATEDIFF('2025-12-29', '2025-12-24')) as total
+FROM tarifarios tar
+INNER JOIN hoteles h ON tar.id_hotel = h.id_hotel
+INNER JOIN tipo_habitaciones th ON tar.id_tipo_habitacion = th.id_tipo_habitacion
+WHERE '2025-12-24' BETWEEN tar.fecha_desde AND tar.fecha_hasta
+  AND '2025-12-29' BETWEEN tar.fecha_desde AND tar.fecha_hasta
+  AND th.descripcion = 'Hab 2 personas'
+ORDER BY total;
+
+-------------------------- 2. Insertar el presupuesto para Hotel Agua Dorada -------------------------------
+-- Insertar presupuesto (primero necesitamos el id_tarifario correcto)
+INSERT INTO presupuesto_reservas (id_tarifario, fecha_reserva_desde, fecha_reserva_hasta, cantidad_noches, cantidad_dias)
+SELECT 
+    tar.id_tarifario,
+    '2025-12-24',
+    '2025-12-29',
+    DATEDIFF('2025-12-29', '2025-12-24'),
+    DATEDIFF('2025-12-29', '2025-12-24') + 1
+FROM tarifarios tar
+INNER JOIN hoteles h ON tar.id_hotel = h.id_hotel
+INNER JOIN tipo_habitaciones th ON tar.id_tipo_habitacion = th.id_tipo_habitacion
+WHERE h.nombre = 'Hotel Agua Dorada'
+  AND th.descripcion = 'Hab 2 personas'
+  AND '2025-12-24' BETWEEN tar.fecha_desde AND tar.fecha_hasta
+  AND '2025-12-29' BETWEEN tar.fecha_desde AND tar.fecha_hasta;
+
+------------------------ 3. Insertar la reserva -------------------------------
+
+-- Insertar reserva (usar el último id_presupuesto_reserva insertado)
+INSERT INTO reservas (id_turista, id_presupuesto_reserva, codigo_reserva, monto_pagar)
+SELECT 
+    1, -- ID del turista (María González)
+    MAX(id_presupuesto_reserva), -- Último presupuesto insertado
+    'RES006',
+    (SELECT precio FROM tarifarios WHERE id_tarifario = (
+        SELECT id_tarifario FROM presupuesto_reservas 
+        WHERE id_presupuesto_reserva = MAX(pr.id_presupuesto_reserva)
+    )) * 5 -- 5 noches
+FROM presupuesto_reservas pr;
+
+
+
+
+
+
+
