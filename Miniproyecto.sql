@@ -51,7 +51,7 @@ CREATE TABLE `hoteles` (
 LOCK TABLES `hoteles` WRITE;
 /*!40000 ALTER TABLE `hoteles` DISABLE KEYS */;
 INSERT INTO `hoteles` VALUES
-(1,'Hotel Sunsol Punta Blanca','Punta Blanca, Venezuela','J-12345678-9'),
+(1,'Hotel Sunsol Punta Blanca','Punta Blanca, Venezuela','J-12345698-9'),
 (2,'Hotel Sunsol Ecoland','Ecoland, Venezuela','J-98765432-1'),
 (3,'Hotel Hesperia','Caracas, Venezuela','J-45678912-3'),
 (4,'Hotel Agua Dorada','Margarita, Venezuela','J-32165497-8');
