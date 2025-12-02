@@ -130,6 +130,27 @@ LOCK TABLES `reservas` WRITE;
 INSERT INTO `reservas` VALUES (1,1,1,'RES001',300.00,'2025-11-30 17:20:58','2025-11-30 17:20:58'),(2,2,2,'RES002',375.00,'2025-11-30 17:20:58','2025-11-30 17:20:58'),(3,3,3,'RES003',475.00,'2025-11-30 17:20:58','2025-11-30 17:20:58'),(4,4,4,'RES004',420.00,'2025-11-30 17:20:58','2025-11-30 17:20:58'),(5,1,5,'RES005',240.00,'2025-11-30 17:20:58','2025-11-30 17:20:58'),(6,1,7,'RES006',410.00,'2025-11-30 17:20:58','2025-11-30 17:20:58');
 /*!40000 ALTER TABLE `reservas` ENABLE KEYS */;
 UNLOCK TABLES;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'IGNORE_SPACE,NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `tg_código_reserva` BEFORE INSERT ON `reservas` FOR EACH ROW BEGIN
+    DECLARE next_id INT;
+    
+    SELECT IFNULL(MAX(id_reserva), 0) + 1 INTO next_id FROM reservas;
+    
+    SET NEW.codigo_reserva = CONCAT('RES', LPAD(next_id, 3, '0'));
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
 -- Table structure for table `tarifarios`
@@ -237,12 +258,13 @@ CREATE TABLE `turistas` (
   `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
   `id_tipo_documento` int(11) NOT NULL,
   `numero_documento` varchar(20) NOT NULL,
+  `activo` tinyint(1) DEFAULT 1,
   PRIMARY KEY (`id_turista`),
   UNIQUE KEY `uk_turista_documento` (`id_tipo_documento`,`numero_documento`),
   KEY `idx_turistas_email` (`correo`),
   CONSTRAINT `fk_turista_tipo_documento` FOREIGN KEY (`id_tipo_documento`) REFERENCES `tipo_documentos` (`id_tipo_documento`),
   CONSTRAINT `chk_email_valido` CHECK (`correo` like '%@%.%')
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -251,12 +273,124 @@ CREATE TABLE `turistas` (
 
 LOCK TABLES `turistas` WRITE;
 /*!40000 ALTER TABLE `turistas` DISABLE KEYS */;
-INSERT INTO `turistas` VALUES (1,'María','González','+584141234568','Caracas','maria.gonzalez@email.com','2025-11-30 19:07:32','2025-11-30 17:21:55',1,'30919870'),(2,'Carlos','López','+584148765432','Valencia','carlos.lopez@email.com','2025-11-30 19:07:32','2025-11-30 17:21:55',1,'30919871'),(3,'Ana','Martínez','+584147896541','Maracaibo','ana.martinez@email.com','2025-11-30 19:07:32','2025-11-30 17:21:55',1,'30919872'),(4,'Pedro','Ramírez','+584143215678','Barquisimeto','pedro.ramirez@email.com','2025-11-30 19:07:32','2025-11-30 17:21:55',1,'30919873'),(5,'Laura','Pérez','+584147896325','Caracas','laura.perez@email.com','2025-11-30 19:08:40','2025-11-30 19:08:40',1,'V-12345678');
+INSERT INTO `turistas` VALUES (1,'María','González','+584141234568','Caracas','maria.gonzalez@email.com','2025-11-30 19:07:32','2025-11-30 17:21:55',1,'30919870',1),(2,'Carlos','López','+584148765432','Valencia','carlos.lopez@email.com','2025-11-30 19:07:32','2025-11-30 17:21:55',1,'30919871',1),(3,'Ana','Martínez','+584147896541','Maracaibo','ana.martinez@email.com','2025-11-30 19:07:32','2025-11-30 17:21:55',1,'30919872',1),(4,'Pedro','Ramírez','+584143215678','Barquisimeto','pedro.ramirez@email.com','2025-11-30 19:07:32','2025-11-30 17:21:55',1,'30919873',1),(5,'Laura','Pérez','+584147896325','Caracas','laura.perez@email.com','2025-11-30 19:08:40','2025-11-30 19:08:40',1,'V-12345678',1),(7,'Ana','Pérez','0414-1111111','Caracas','ana.perez@gmail.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'11111111',1),(8,'Luis','Rodríguez','0412-2222222','Valencia','luis.rod@hotmail.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'12222222',1),(9,'Carmen','Díaz','0416-3333333','Maracaibo','carmen.d@yahoo.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'13333333',1),(10,'Pedro','Morales','0424-4444444','Barquisimeto','pedro.m@outlook.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'14444444',1),(11,'Sofía','Vergara','0414-5555555','Mérida','sofia.v@gmail.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'15555555',1),(12,'Miguel','Cabrera','0412-6666666','Maracay','miguel.c@beisbol.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'16666666',1),(13,'Elena','Gómez','0416-7777777','Porlamar','elena.g@gmail.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'17777777',1),(14,'Ricardo','Montaner','0424-8888888','Maracaibo','ricardo.m@musica.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'18888888',1),(15,'Valentina','Quintero','0414-9999999','Caracas','valentina.q@viajes.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'19999999',1),(16,'Simón','Díaz','0412-0000001','Apure','simon.d@llano.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'20000001',1),(17,'Andrés','Galarraga','0416-0000002','Caracas','gato.g@deporte.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'20000002',1),(18,'Maite','Delgado','0424-0000003','Barcelona','maite.d@show.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'20000003',1),(19,'Edgar','Ramírez','0414-0000004','San Cristóbal','edgar.r@cine.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'20000004',1),(20,'Gaby','Espino','0412-0000005','Caracas','gaby.e@novela.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'20000005',1),(21,'Chyno','Miranda','0416-0000006','La Guaira','chyno.m@musica.com','2025-12-02 02:23:00','2025-12-02 02:23:00',1,'20000006',1);
 /*!40000 ALTER TABLE `turistas` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
--- Temporary table structure for view `vista_reservas_detalladas`
+-- Table structure for table `usuarios`
 --
 
-DROP TABLE IF EXISTS `vista_reservas_detalladas`;
+DROP TABLE IF EXISTS `usuarios`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `usuarios` (
+  `id_usuario` int(11) NOT NULL AUTO_INCREMENT,
+  `usuario` varchar(50) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `nombre_completo` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id_usuario`),
+  UNIQUE KEY `usuario` (`usuario`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `usuarios`
+--
+
+LOCK TABLES `usuarios` WRITE;
+/*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
+/*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Temporary table structure for view `vista_tarifas_por_hotel`
+--
+
+DROP TABLE IF EXISTS `vista_tarifas_por_hotel`;
+/*!50001 DROP VIEW IF EXISTS `vista_tarifas_por_hotel`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+/*!50001 CREATE VIEW `vista_tarifas_por_hotel` AS SELECT
+ 1 AS `hotel`,
+  1 AS `total_tarifas`,
+  1 AS `precio_minimo`,
+  1 AS `precio_maximo`,
+  1 AS `precio_promedio` */;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Dumping routines for database 'agencia'
+--
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'IGNORE_SPACE,NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `sp_generar_presupuesto` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_generar_presupuesto`(
+    IN p_id_tarifario INT,
+    IN p_personas INT,
+    IN p_fecha_desde DATE,
+    IN p_fecha_hasta DATE,
+    OUT p_id_presupuesto INT,
+    OUT p_total DECIMAL(10,2)
+)
+BEGIN
+    DECLARE v_noches INT;
+    DECLARE v_precio DECIMAL(10,2);
+
+    SET v_noches = DATEDIFF(p_fecha_hasta, p_fecha_desde);
+
+    IF v_noches = 0 THEN SET v_noches = 1; END IF;
+
+    SELECT precio INTO v_precio
+    FROM tarifarios
+    WHERE id_tarifario = p_id_tarifario;
+
+    SET p_total = (v_precio * v_noches) * p_personas;
+
+    INSERT INTO presupuesto_reservas(id_tarifario, fecha_reserva_desde, fecha_reserva_hasta)
+    VALUES (p_id_tarifario, p_fecha_desde, p_fecha_hasta);
+
+    SET p_id_presupuesto = LAST_INSERT_ID();
+
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
+--
+-- Final view structure for view `vista_tarifas_por_hotel`
+--
+
+/*!50001 DROP VIEW IF EXISTS `vista_tarifas_por_hotel`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_general_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `vista_tarifas_por_hotel` AS select `h`.`nombre` AS `hotel`,count(`t`.`id_tarifario`) AS `total_tarifas`,min(`t`.`precio`) AS `precio_minimo`,max(`t`.`precio`) AS `precio_maximo`,avg(`t`.`precio`) AS `precio_promedio` from (`hoteles` `h` left join `tarifarios` `t` on(`h`.`id_hotel` = `t`.`id_hotel`)) group by `h`.`id_hotel`,`h`.`nombre` */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2025-12-01 22:30:04
