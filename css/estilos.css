@@ -1,0 +1,18 @@
+.hero-background {
+    background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+}
+
+.card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.navbar-item.is-active {
+    font-weight: bold;
+    color: #3273dc !important;
+}
+
+body.has-navbar-fixed-top {
+    padding-top: 3.25rem;
+}

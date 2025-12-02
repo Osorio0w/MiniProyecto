@@ -1,0 +1,122 @@
+body {
+    font-family: "Segoe UI", "Helvetica", Arial, sans-serif;
+    background: #f5f7fa;
+    color: #333;
+    line-height: 1.4;
+}
+
+.ticket-container {
+    max-width: 900px;
+    margin: auto;
+}
+
+.box {
+    border-radius: 10px;
+    background: white;
+    border: 1px solid #e0e0e0;
+}
+
+.title-agencia {
+    font-weight: 700;
+    color: #209cee;
+    letter-spacing: 0.5px;
+}
+
+.subtitle {
+    font-weight: 500;
+    color: #6a6a6a;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #e3e3e3;
+    margin: 20px 0;
+}
+
+.section-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #999;
+    text-transform: uppercase;
+}
+
+.client-data p,
+.trip-data p {
+    margin-bottom: 4px;
+    font-size: 1rem;
+}
+
+
+table.table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+table th {
+    background: #eef3f7;
+    font-weight: 600 !important;
+}
+
+table td {
+    background: white;
+    font-size: 1.05rem;
+    padding: 12px !important;
+}
+
+.monto-container {
+    text-align: right;
+}
+
+.monto-container .heading {
+    font-size: 0.95rem;
+    color: #999;
+    text-transform: uppercase;
+}
+
+.monto-container .monto {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #23a55b;
+}
+
+.footer-recibo {
+    border-top: 1px dashed #cfcfcf;
+    padding-top: 20px;
+    margin-top: 35px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #949494;
+}
+
+@page {
+    margin: 0 !important;
+}
+
+@media print {
+
+    body {
+        margin: 15mm !important;
+        background: white !important;
+    }
+
+    .no-print,
+    nav,
+    .breadcrumb,
+    .buttons {
+        display: none !important;
+    }
+
+    .box {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+    }
+
+    .section,
+    .container,
+    .box,
+    table,
+    .columns,
+    .column {
+        page-break-inside: avoid !important;
+    }
+}
