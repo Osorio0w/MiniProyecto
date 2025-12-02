@@ -9,8 +9,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $f_desde      = $_POST['fecha_desde'];
     $f_hasta      = $_POST['fecha_hasta'];
     $personas     = $_POST['personas'];
-
     $traslado = isset($_POST['traslado']) && $_POST['traslado'] !== '' ? floatval($_POST['traslado']) : 0;
+    $id_pago      = $_POST['id_metodo_pago'];
+    $referencia   = $_POST['referencia_pago'];
 
     try {
         $con->begin_transaction();
@@ -29,8 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         $monto_final = $monto_sp + $traslado;
 
-        $stmt = $con->prepare("INSERT INTO reservas (id_turista, id_presupuesto_reserva, monto_pagar) VALUES (?, ?, ?)");
-        $stmt->bind_param("iid", $id_turista, $id_presupuesto, $monto_final);
+        $stmt = $con->prepare("INSERT INTO reservas (id_turista, id_presupuesto_reserva, id_metodo_pago, referencia_pago, monto_pagar) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("iiisd", $id_turista, $id_presupuesto, $id_pago, $referencia, $monto_final);
 
         if (!$stmt->execute()) {
             throw new Exception("Error al guardar: " . $stmt->error);

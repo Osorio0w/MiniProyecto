@@ -11,31 +11,16 @@ $buscar = $_GET['buscar'] ?? '';
 
 $where = "";
 if ($buscar != "") {
-    $where = "WHERE (r.codigo_reserva LIKE '%$buscar%' OR t.nombre LIKE '%$buscar%' OR t.apellido LIKE '%$buscar%')";
+    $where = "WHERE (codigo_reserva LIKE '%$buscar%' OR cliente_completo LIKE '%$buscar%')";
 }
 
-$sql_total = "SELECT COUNT(*) as total FROM reservas r 
-              INNER JOIN turistas t ON r.id_turista = t.id_turista 
-              $where";
+$sql_total = "SELECT COUNT(*) as total FROM v_reservas_detallada $where";
 $total_registros = $con->query($sql_total)->fetch_assoc()['total'];
 $total_paginas = ceil($total_registros / $por_pagina);
 
-$sql = "SELECT 
-            r.id_reserva,
-            r.codigo_reserva,
-            r.monto_pagar,
-            r.creado_en,
-            t.nombre, t.apellido, t.numero_documento,
-            h.nombre as hotel,
-            pr.fecha_reserva_desde,
-            pr.fecha_reserva_hasta
-        FROM reservas r
-        INNER JOIN turistas t ON r.id_turista = t.id_turista
-        INNER JOIN presupuesto_reservas pr ON r.id_presupuesto_reserva = pr.id_presupuesto_reserva
-        INNER JOIN tarifarios ta ON pr.id_tarifario = ta.id_tarifario
-        INNER JOIN hoteles h ON ta.id_hotel = h.id_hotel
-        $where
-        ORDER BY r.creado_en DESC
+$sql = "SELECT * FROM v_reservas_detallada 
+        $where 
+        ORDER BY creado_en DESC 
         LIMIT $inicio, $por_pagina";
 
 $resultado = $con->query($sql);
@@ -49,16 +34,23 @@ $resultado = $con->query($sql);
     <title>Listado de Reservas</title>
     <link rel="icon" href="../assets/img/Icono.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/estilos.css">
 </head>
 
 <body>
+
     <section class="section">
         <div class="container">
 
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
-                    <li><a href="../index.php">Inicio</a></li>
+                    <li>
+                        <a href="../index.php" class="has-text-info">
+                            <span class="icon is-small"><i class="fas fa-home"></i></span>
+                            <span>Inicio</span>
+                        </a>
+                    </li>
                     <li class="is-active"><a href="#" aria-current="page">Reservas</a></li>
                 </ul>
             </nav>
@@ -75,18 +67,11 @@ $resultado = $con->query($sql);
                 </div>
             </div>
 
-            <?php if (isset($_GET['msg']) && $_GET['msg'] == 'exito'): ?>
-                <div class="notification is-success is-light">
-                    <button class="delete" onclick="this.parentElement.style.display='none'"></button>
-                    <strong>¡Venta Exitosa!</strong> La reserva se ha guardado correctamente.
-                </div>
-            <?php endif; ?>
-
             <div class="box has-background-light">
                 <form method="GET">
                     <div class="field has-addons">
                         <div class="control is-expanded has-icons-left">
-                            <input class="input" type="text" name="buscar" placeholder="Buscar por código (RES-001) o cliente..." value="<?= htmlspecialchars($buscar) ?>">
+                            <input class="input" type="text" name="buscar" placeholder="Buscar por código o nombre..." value="<?= htmlspecialchars($buscar) ?>">
                             <span class="icon is-small is-left"><i class="fas fa-search"></i></span>
                         </div>
                         <div class="control">
@@ -107,9 +92,10 @@ $resultado = $con->query($sql);
                         <thead>
                             <tr>
                                 <th>Código</th>
-                                <th>Fecha Venta</th>
+                                <th>Fecha</th>
                                 <th>Cliente</th>
-                                <th>Hotel / Fechas</th>
+                                <th>Detalles Pago</th>
+                                <th>Hotel</th>
                                 <th>Total</th>
                                 <th>Acciones</th>
                             </tr>
@@ -117,7 +103,7 @@ $resultado = $con->query($sql);
                         <tbody>
                             <?php if ($resultado->num_rows == 0): ?>
                                 <tr>
-                                    <td colspan="6" class="has-text-centered py-5">
+                                    <td colspan="7" class="has-text-centered py-5">
                                         <p class="subtitle is-5 has-text-grey">No hay ventas registradas aún 📉</p>
                                     </td>
                                 </tr>
@@ -125,30 +111,57 @@ $resultado = $con->query($sql);
                                 <?php while ($row = $resultado->fetch_assoc()): ?>
                                     <tr>
                                         <td>
-                                            <span class="tag is-black is-medium"><?= $row['codigo_reserva'] ?></span>
+                                            <span class="tag is-black"><?= $row['codigo_reserva'] ?></span>
+                                        </td>
+                                        <td class="is-size-7">
+                                            <?= date('d/m/Y', strtotime($row['creado_en'])) ?>
                                         </td>
                                         <td>
-                                            <?= date('d/m/Y H:i', strtotime($row['creado_en'])) ?>
+                                            <strong><?= $row['cliente_completo'] ?></strong><br>
+                                            <span class="is-size-7 has-text-grey"><?= $row['cliente_doc'] ?></span>
                                         </td>
+
                                         <td>
-                                            <strong><?= $row['nombre'] . ' ' . $row['apellido'] ?></strong><br>
-                                            <span class="is-size-7"><?= $row['numero_documento'] ?></span>
+                                            <?php
+                                            $clase_pago = "is-light";
+                                            $icono_pago = "fas fa-money-bill-wave";
+                                            $metodo = strtolower($row['metodo_pago']);
+
+                                            if (strpos($metodo, 'zelle') !== false) {
+                                                $clase_pago = "is-link is-light";
+                                                $icono_pago = "fab fa-cc-amazon-pay";
+                                            } elseif (strpos($metodo, 'efectivo') !== false) {
+                                                $clase_pago = "is-success is-light";
+                                                $icono_pago = "fas fa-coins";
+                                            }
+                                            ?>
+
+                                            <span class="tag <?= $clase_pago ?>">
+                                                <i class="<?= $icono_pago ?> mr-1"></i>
+                                                <?= $row['metodo_pago'] ?>
+                                            </span>
+
+                                            <?php if (!empty($row['referencia_pago'])): ?>
+                                                <div class="is-size-7 has-text-grey mt-1">
+                                                    Ref: <span class="has-text-weight-bold"><?= $row['referencia_pago'] ?></span>
+                                                </div>
+                                            <?php endif; ?>
                                         </td>
+
                                         <td>
-                                            <span class="icon has-text-info"><i class="fas fa-hotel"></i></span>
-                                            <?= $row['hotel'] ?><br>
-                                            <span class="tag is-light is-small">
-                                                <?= date('d/m', strtotime($row['fecha_reserva_desde'])) ?> al
-                                                <?= date('d/m', strtotime($row['fecha_reserva_hasta'])) ?>
+                                            <?= $row['hotel_nombre'] ?>
+                                            <br>
+                                            <span class="is-size-7">
+                                                <?= date('d/m', strtotime($row['check_in'])) ?> -
+                                                <?= date('d/m', strtotime($row['check_out'])) ?>
                                             </span>
                                         </td>
-                                        <td class="has-text-success has-text-weight-bold is-size-5">
+                                        <td class="has-text-success has-text-weight-bold">
                                             $<?= number_format($row['monto_pagar'], 2) ?>
                                         </td>
                                         <td>
                                             <a href="comprobante.php?id=<?= $row['id_reserva'] ?>" target="_blank" class="button is-small is-info is-outlined" title="Imprimir Ticket">
                                                 <span class="icon"><i class="fas fa-print"></i></span>
-                                                <span>Ticket</span>
                                             </a>
                                         </td>
                                     </tr>

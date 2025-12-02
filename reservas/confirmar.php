@@ -13,7 +13,6 @@ $fecha_desde  = $_POST['fecha_desde'];
 $fecha_hasta  = $_POST['fecha_hasta'];
 $personas     = $_POST['personas'];
 $monto_base   = $_POST['monto_base'];
-
 $hotel_nombre = $_POST['hotel_nombre'];
 $habitacion   = $_POST['habitacion'];
 $noches       = $_POST['noches'];
@@ -24,6 +23,8 @@ $turista = $sql_t->fetch_assoc();
 $sql_h = $con->query("SELECT id_hotel FROM tarifarios WHERE id_tarifario = $id_tarifario");
 $row_h = $sql_h->fetch_assoc();
 $id_hotel_real = $row_h['id_hotel'];
+
+$sql_metodos = $con->query("SELECT * FROM metodos_pago");
 ?>
 
 <!DOCTYPE html>
@@ -118,6 +119,45 @@ $id_hotel_real = $row_h['id_hotel'];
                                 <p class="help">Ingrese monto si solicitó transporte.</p>
                             </div>
 
+                            <div class="box mt-4" style="border: 1px solid #dbdbdb;">
+                                <h4 class="title is-6 mb-3"><i class="fas fa-wallet"></i> Datos del Pago</h4>
+
+                                <div class="columns">
+                                    <div class="column is-6">
+                                        <div class="field">
+                                            <label class="label is-small">Método de Pago</label>
+                                            <div class="control">
+                                                <div class="select is-fullwidth">
+                                                    <select name="id_metodo_pago" id="selectMetodo" required>
+                                                        <option value="" selected disabled>Seleccione una opción...</option>
+                                                        <?php
+                                                        $sql_metodos->data_seek(0);
+                                                        while ($m = $sql_metodos->fetch_assoc()):
+                                                        ?>
+                                                            <option value="<?= $m['id_metodo_pago'] ?>">
+                                                                <?= $m['nombre'] ?>
+                                                            </option>
+                                                        <?php endwhile; ?>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="column is-6" id="campoReferencia" style="display: none;">
+                                        <div class="field">
+                                            <label class="label is-small">Referencia / Nota</label>
+                                            <div class="control">
+                                                <input class="input" type="text" name="referencia_pago" id="inputReferencia"
+                                                    placeholder="Ej: 123456 o Pago Móvil Banesco">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p class="help" id="mensajeAyuda">Seleccione un método de pago.</p>
+                            </div>
+
                             <hr>
 
                             <div class="level is-mobile">
@@ -149,13 +189,43 @@ $id_hotel_real = $row_h['id_hotel'];
         const inputTraslado = document.getElementById('traslado');
         const display = document.getElementById('totalDisplay');
 
-        inputTraslado.addEventListener('input', function() {
-            let extra = parseFloat(this.value);
-            if (isNaN(extra)) extra = 0;
+        if (inputTraslado && display) {
+            inputTraslado.addEventListener('input', function() {
+                let extra = parseFloat(this.value);
+                if (isNaN(extra)) extra = 0;
+                let total = base + extra;
+                display.innerText = '$' + total.toFixed(2);
+            });
+        }
 
-            let total = base + extra;
-            display.innerText = '$' + total.toFixed(2);
-        });
+        const selectMetodo = document.getElementById('selectMetodo');
+        const campoReferencia = document.getElementById('campoReferencia');
+        const inputReferencia = document.getElementById('inputReferencia');
+        const mensajeAyuda = document.getElementById('mensajeAyuda');
+
+        if (selectMetodo) {
+            selectMetodo.addEventListener('change', function() {
+                const textoSeleccionado = this.options[this.selectedIndex].text.toLowerCase();
+
+                if (textoSeleccionado.includes('efectivo')) {
+                    campoReferencia.style.display = 'none';
+                    inputReferencia.removeAttribute('required');
+                    inputReferencia.value = '';
+                    mensajeAyuda.innerText = "Pago en efectivo al momento.";
+                } else {
+                    campoReferencia.style.display = 'block';
+                    inputReferencia.setAttribute('required', 'true');
+
+                    if (textoSeleccionado.includes('zelle')) {
+                        mensajeAyuda.innerText = "Indique el titular o correo de Zelle.";
+                    } else if (textoSeleccionado.includes('móvil') || textoSeleccionado.includes('movil')) {
+                        mensajeAyuda.innerText = "Indique los últimos 4 dígitos y banco.";
+                    } else {
+                        mensajeAyuda.innerText = "Escriba el número de comprobante.";
+                    }
+                }
+            });
+        }
     </script>
 </body>
 

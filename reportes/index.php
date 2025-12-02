@@ -5,34 +5,19 @@ include("../config/conexion.php");
 
 $kpi_ingresos = $con->query("SELECT SUM(monto_pagar) as total FROM reservas")->fetch_assoc()['total'];
 $kpi_reservas = $con->query("SELECT COUNT(*) as total FROM reservas")->fetch_assoc()['total'];
-$kpi_hotel = $con->query("
-    SELECT h.nombre FROM reservas r
-    JOIN presupuesto_reservas pr ON r.id_presupuesto_reserva = pr.id_presupuesto_reserva
-    JOIN tarifarios t ON pr.id_tarifario = t.id_tarifario
-    JOIN hoteles h ON t.id_hotel = h.id_hotel
-    GROUP BY h.id_hotel ORDER BY COUNT(*) DESC LIMIT 1
-")->fetch_assoc();
-$nombre_top_hotel = $kpi_hotel ? $kpi_hotel['nombre'] : 'N/A';
 
-$res_hoteles = $con->query("
-    SELECT h.nombre, COUNT(r.id_reserva) as ventas
-    FROM reservas r
-    JOIN presupuesto_reservas pr ON r.id_presupuesto_reserva = pr.id_presupuesto_reserva
-    JOIN tarifarios t ON pr.id_tarifario = t.id_tarifario
-    JOIN hoteles h ON t.id_hotel = h.id_hotel
-    GROUP BY h.id_hotel ORDER BY ventas DESC LIMIT 5
-");
+$kpi_hotel = $con->query("SELECT hotel FROM v_stats_hoteles LIMIT 1")->fetch_assoc();
+$nombre_top_hotel = $kpi_hotel ? $kpi_hotel['hotel'] : 'N/A';
+
+$res_hoteles = $con->query("SELECT * FROM v_stats_hoteles LIMIT 5");
 $labels_h = [];
 $data_h = [];
 while ($row = $res_hoteles->fetch_assoc()) {
-    $labels_h[] = $row['nombre'];
+    $labels_h[] = $row['hotel'];
     $data_h[] = $row['ventas'];
 }
 
-$res_meses = $con->query("
-    SELECT DATE_FORMAT(creado_en, '%Y-%m') as mes, SUM(monto_pagar) as total
-    FROM reservas r GROUP BY mes ORDER BY mes ASC LIMIT 6
-");
+$res_meses = $con->query("SELECT DATE_FORMAT(creado_en, '%Y-%m') as mes, SUM(monto_pagar) as total FROM reservas GROUP BY mes ORDER BY mes ASC LIMIT 6");
 $labels_m = [];
 $data_m = [];
 while ($row = $res_meses->fetch_assoc()) {
@@ -41,12 +26,15 @@ while ($row = $res_meses->fetch_assoc()) {
     $data_m[] = $row['total'];
 }
 
-$res_vip = $con->query("
-    SELECT t.nombre, t.apellido, t.ubicacion, COUNT(r.id_reserva) as viajes, SUM(r.monto_pagar) as gastado
-    FROM reservas r JOIN turistas t ON r.id_turista = t.id_turista
-    GROUP BY t.id_turista ORDER BY gastado DESC LIMIT 5
-");
+$res_vip = $con->query("SELECT * FROM v_stats_clientes LIMIT 5");
+
+$res_caja = $con->query("SELECT * FROM v_finanzas_diarias LIMIT 7"); 
+
+$res_llegadas = $con->query("SELECT * FROM v_agenda_llegadas LIMIT 5");
+
+$res_habs = $con->query("SELECT * FROM v_demanda_habitaciones");
 ?>
+
 
 <!DOCTYPE html>
 <html lang="es">
@@ -70,7 +58,7 @@ $res_vip = $con->query("
             <nav class="breadcrumb has-succeeds-separator" aria-label="breadcrumbs">
                 <ul>
                     <li>
-                        <a href="../index.php" class="has-text-grey">
+                        <a href="../index.php" class="has-text-info">
                             <span class="icon is-small"><i class="fas fa-home"></i></span>
                             <span>Inicio</span>
                         </a>
@@ -138,6 +126,118 @@ $res_vip = $con->query("
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="box">
+                <h3 class="title is-5">💰 Cierre de Caja (Última Semana)</h3>
+                <table class="table is-fullwidth is-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Ventas Cerradas</th>
+                            <th>Ingreso Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($dia = $res_caja->fetch_assoc()): ?>
+                            <tr>
+                                <td><?= date('d/m/Y', strtotime($dia['fecha_venta'])) ?></td>
+                                <td><?= $dia['cantidad_ventas'] ?></td>
+                                <td class="has-text-success has-text-weight-bold">
+                                    $<?= number_format($dia['total_ingresos'], 2) ?>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="columns">
+
+                <div class="column is-7">
+                    <div class="box" style="height: 100%;">
+                        <div class="level mb-2">
+                            <div class="level-left">
+                                <h3 class="title is-5"><i class="fas fa-plane-arrival has-text-info mr-2"></i> Próximas Llegadas</h3>
+                            </div>
+                        </div>
+
+                        <table class="table is-fullwidth is-hoverable is-narrow">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Hotel</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if ($res_llegadas->num_rows > 0): ?>
+                                    <?php while ($l = $res_llegadas->fetch_assoc()):
+                                        $dias = $l['dias_faltantes'];
+                                        $clase = "is-info is-light";
+                                        $texto = "En $dias días";
+
+                                        if ($dias == 0) {
+                                            $clase = "is-success";
+                                            $texto = "¡LLEGA HOY!";
+                                        } elseif ($dias == 1) {
+                                            $clase = "is-warning";
+                                            $texto = "Mañana";
+                                        }
+                                    ?>
+                                        <tr>
+                                            <td><?= date('d/m', strtotime($l['fecha_llegada'])) ?></td>
+                                            <td>
+                                                <strong><?= $l['cliente'] ?></strong><br>
+                                                <small class="has-text-grey"><i class="fas fa-phone-alt"></i> <?= $l['telefono'] ?></small>
+                                            </td>
+                                            <td><?= $l['hotel'] ?></td>
+                                            <td><span class="tag <?= $clase ?>"><?= $texto ?></span></td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="4" class="has-text-grey has-text-centered">No hay llegadas próximas.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="column is-5">
+                    <div class="box" style="height: 100%;">
+                        <h3 class="title is-5"><i class="fas fa-bed has-text-primary mr-2"></i> Habitaciones Top</h3>
+
+                        <table class="table is-fullwidth is-striped">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th class="has-text-centered">Reservas</th>
+                                    <th class="has-text-right">Ingresos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php while ($h = $res_habs->fetch_assoc()): ?>
+                                    <tr>
+                                        <td><?= $h['tipo_habitacion'] ?></td>
+                                        <td class="has-text-centered">
+                                            <span class="tag is-rounded is-white border-tag">
+                                                <?= $h['veces_reservada'] ?>
+                                            </span>
+                                        </td>
+                                        <td class="has-text-right is-size-7">
+                                            $<?= number_format($h['dinero_generado'], 0) ?>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                        <p class="help mt-3">Total acumulado por categoría.</p>
+                    </div>
+                </div>
+
             </div>
 
             <div class="box mt-5">

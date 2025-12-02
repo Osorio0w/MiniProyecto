@@ -8,7 +8,7 @@ $dias = 0;
 $noches = 0;
 
 $turistas = $con->query("SELECT id_turista, nombre, apellido FROM turistas WHERE activo = 1 ORDER BY nombre ASC");
-$hoteles  = $con->query("SELECT id_hotel, nombre, ubicacion FROM hoteles");
+$hoteles  = $con->query("SELECT id_hotel, nombre, ubicacion FROM hoteles WHERE activo = 1");
 
 if (isset($_GET['cotizar'])) {
 
@@ -27,30 +27,21 @@ if (isset($_GET['cotizar'])) {
         $noches = $diff->days;
         $dias   = $noches + 1;
 
-        $sql = "SELECT 
-                    t.id_tarifario,
-                    t.precio,
-                    h.nombre as nombre_hotel,
-                    h.ubicacion,
-                    th.descripcion as tipo_habitacion,
-                    th.cantidad_personas as capacidad
-                FROM tarifarios t
-                INNER JOIN hoteles h ON t.id_hotel = h.id_hotel
-                INNER JOIN tipo_habitaciones th ON t.id_tipo_habitacion = th.id_tipo_habitacion
+        $sql = "SELECT * FROM v_tarifas_activas
                 WHERE 
-                    t.fecha_desde <= '$fecha_in' 
-                    AND t.fecha_hasta >= '$fecha_out'
-                    AND th.cantidad_personas >= $personas";
+                    fecha_desde <= '$fecha_in' 
+                    AND fecha_hasta >= '$fecha_out'
+                    AND capacidad >= $personas";
 
         if (!empty($id_hotel)) {
-            $sql .= " AND t.id_hotel = $id_hotel";
+            $sql .= " AND id_hotel = $id_hotel";
         }
 
-        $sql .= " ORDER BY t.precio ASC";
+        $sql .= " ORDER BY precio ASC";
 
         $query_res = $con->query($sql);
 
-        if ($query_res->num_rows > 0) {
+        if ($query_res && $query_res->num_rows > 0) {
             while ($row = $query_res->fetch_assoc()) {
                 $resultados[] = $row;
             }
@@ -70,15 +61,22 @@ if (isset($_GET['cotizar'])) {
     <link rel="icon" href="../assets/img/Icono.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/estilos.css">
 </head>
 
 <body>
+
     <section class="section">
         <div class="container">
 
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
-                    <li><a href="../index.php">Inicio</a></li>
+                    <li>
+                        <a href="../index.php" class="has-text-info">
+                            <span class="icon is-small"><i class="fas fa-home"></i></span>
+                            <span>Inicio</span>
+                        </a>
+                    </li>
                     <li class="is-active"><a href="#" aria-current="page">Cotizador</a></li>
                 </ul>
             </nav>
@@ -166,16 +164,16 @@ if (isset($_GET['cotizar'])) {
                             <div class="card card-hover">
                                 <header class="card-header">
                                     <p class="card-header-title is-centered has-background-white-ter">
-                                        <?= $row['nombre_hotel'] ?>
+                                        <?= $row['hotel_nombre'] ?>
                                     </p>
                                 </header>
                                 <div class="card-content">
                                     <div class="content has-text-centered">
                                         <p class="subtitle is-6 mb-2">
-                                            <i class="fas fa-map-marker-alt has-text-danger"></i> <?= $row['ubicacion'] ?>
+                                            <i class="fas fa-map-marker-alt has-text-danger"></i> <?= $row['hotel_ubicacion'] ?>
                                         </p>
                                         <span class="tag is-primary is-light is-medium mb-3">
-                                            <?= $row['tipo_habitacion'] ?>
+                                            <?= $row['habitacion_tipo'] ?>
                                         </span>
 
                                         <div class="columns is-mobile is-vcentered mt-2" style="border-top: 1px solid #eee; padding-top: 10px;">
@@ -197,8 +195,8 @@ if (isset($_GET['cotizar'])) {
                                             <input type="hidden" name="personas" value="<?= $_GET['personas'] ?>">
                                             <input type="hidden" name="monto_base" value="<?= $total_calculado ?>">
 
-                                            <input type="hidden" name="hotel_nombre" value="<?= $row['nombre_hotel'] ?>">
-                                            <input type="hidden" name="habitacion" value="<?= $row['tipo_habitacion'] ?>">
+                                            <input type="hidden" name="hotel_nombre" value="<?= $row['hotel_nombre'] ?>">
+                                            <input type="hidden" name="habitacion" value="<?= $row['habitacion_tipo'] ?>">
                                             <input type="hidden" name="noches" value="<?= $noches ?>">
 
                                             <button class="button is-success is-fullwidth mt-3">

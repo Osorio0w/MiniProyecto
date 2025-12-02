@@ -20,41 +20,29 @@ $f_desde   = $_GET['desde'] ?? '';
 $f_hasta   = $_GET['hasta'] ?? '';
 $f_keyword = $_GET['keyword'] ?? '';
 
-$sql = "SELECT 
-            r.codigo_reserva,
-            r.creado_en,
-            r.monto_pagar,
-            h.nombre as hotel,
-            pr.fecha_reserva_desde,
-            pr.fecha_reserva_hasta
-        FROM reservas r
-        INNER JOIN presupuesto_reservas pr ON r.id_presupuesto_reserva = pr.id_presupuesto_reserva
-        INNER JOIN tarifarios t ON pr.id_tarifario = t.id_tarifario
-        INNER JOIN hoteles h ON t.id_hotel = h.id_hotel
-        WHERE r.id_turista = ?";
-
+$sql = "SELECT * FROM v_reservas_detallada WHERE id_turista = ?";
 $tipos = "i";
 $params = [$id];
 
 if (!empty($f_desde)) {
-    $sql .= " AND DATE(r.creado_en) >= ?";
+    $sql .= " AND DATE(creado_en) >= ?";
     $tipos .= "s";
     $params[] = $f_desde;
 }
 if (!empty($f_hasta)) {
-    $sql .= " AND DATE(r.creado_en) <= ?";
+    $sql .= " AND DATE(creado_en) <= ?";
     $tipos .= "s";
     $params[] = $f_hasta;
 }
 if (!empty($f_keyword)) {
-    $sql .= " AND (h.nombre LIKE ? OR r.codigo_reserva LIKE ?)";
+    $sql .= " AND (hotel_nombre LIKE ? OR codigo_reserva LIKE ?)";
     $tipos .= "ss";
     $p = "%$f_keyword%";
     $params[] = $p;
     $params[] = $p;
 }
 
-$sql .= " ORDER BY r.creado_en DESC";
+$sql .= " ORDER BY creado_en DESC";
 
 $stmt = $con->prepare($sql);
 $stmt->bind_param($tipos, ...$params);
@@ -63,11 +51,9 @@ $resultado = $stmt->get_result();
 
 $total_dinero = 0;
 $total_reservas = $resultado->num_rows;
-
 while ($fila = $resultado->fetch_assoc()) {
     $total_dinero += $fila['monto_pagar'];
 }
-
 $resultado->data_seek(0);
 ?>
 
@@ -80,12 +66,13 @@ $resultado->data_seek(0);
     <link rel="icon" href="../assets/img/Icono.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/estilos.css">
 </head>
 
 <body>
+
     <section class="section">
         <div class="container">
-
             <div class="level mb-4">
                 <div class="level-left">
                     <div>
@@ -131,15 +118,11 @@ $resultado->data_seek(0);
                     <div class="columns is-vcentered is-mobile is-multiline">
                         <div class="column is-3-desktop is-6-mobile">
                             <label class="label is-small">Desde</label>
-                            <div class="control">
-                                <input class="input is-small" type="date" name="desde" value="<?= $f_desde ?>">
-                            </div>
+                            <input class="input is-small" type="date" name="desde" value="<?= $f_desde ?>">
                         </div>
                         <div class="column is-3-desktop is-6-mobile">
                             <label class="label is-small">Hasta</label>
-                            <div class="control">
-                                <input class="input is-small" type="date" name="hasta" value="<?= $f_hasta ?>">
-                            </div>
+                            <input class="input is-small" type="date" name="hasta" value="<?= $f_hasta ?>">
                         </div>
                         <div class="column is-4-desktop is-12-mobile">
                             <label class="label is-small">Palabra Clave</label>
@@ -171,7 +154,7 @@ $resultado->data_seek(0);
                                     <th>Hotel</th>
                                     <th>Viaje</th>
                                     <th>Monto</th>
-                                    <th>Estado</th>
+                                    <th>Ticket</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -179,17 +162,21 @@ $resultado->data_seek(0);
                                     <tr>
                                         <td><span class="tag is-black is-light"><?= $h['codigo_reserva'] ?></span></td>
                                         <td><?= date('d/m/Y', strtotime($h['creado_en'])) ?></td>
-                                        <td><strong><?= $h['hotel'] ?></strong></td>
+                                        <td><strong><?= $h['hotel_nombre'] ?></strong></td>
                                         <td>
                                             <span class="is-size-7">
-                                                <?= date('d/m', strtotime($h['fecha_reserva_desde'])) ?> -
-                                                <?= date('d/m', strtotime($h['fecha_reserva_hasta'])) ?>
+                                                <?= date('d/m', strtotime($h['check_in'])) ?> -
+                                                <?= date('d/m', strtotime($h['check_out'])) ?>
                                             </span>
                                         </td>
                                         <td class="has-text-success has-text-weight-bold">
                                             $<?= number_format($h['monto_pagar'], 2) ?>
                                         </td>
-                                        <td><span class="tag is-success is-light">Confirmada</span></td>
+                                        <td>
+                                            <a href="../reservas/comprobante.php?id=<?= $h['id_reserva'] ?>" target="_blank" class="button is-small is-info is-outlined">
+                                                <span class="icon"><i class="fas fa-print"></i></span>
+                                            </a>
+                                        </td>
                                     </tr>
                                 <?php endwhile; ?>
                             </tbody>
